@@ -34,7 +34,7 @@ build: build/CMakeCache.txt
 # Third command should not be removed as it stops multiple regeneration of build system by updating the MakeCache forcefully
 build/CMakeCache.txt: CMakeLists.txt
 	@echo Making the generator
-	$(PRE_CMD) cmake -B ./build -S . -G $(GENERATOR) $(FLAGS)
+	cmake -B ./build -S . -G $(GENERATOR) $(FLAGS)
 	cmake -E touch build/CMakeCache.txt
 	$(MAKE) update_compile_commands
 
