@@ -1,0 +1,1 @@
+This folder contains programs/pipeline that are only used during development and not transferred to user on final release, these pipelines run when the main program is built, and convert raw assets to final asset form like JPG to BC7 (BC7 is not final and subject to change in future) for textures or SPIR-V for shaders from any raw format.

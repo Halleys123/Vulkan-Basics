@@ -1,0 +1,1 @@
+This folder only contains raw assets which when passed through appropriate asset pipeline will be converted to correct format for example JPG to BC7, This is/should be used for other type of raw assets also like shaders, as vulkan needs SPIR-V which are compiled format of glsl/hlsl shaders

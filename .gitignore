@@ -1,0 +1,12 @@
+__cmake_systeminformation
+build-clangd
+build
+.cache
+MakeCache
+compile_commands.json
+
+# Build outputs
+.exe
+.so
+.obj
+.o
