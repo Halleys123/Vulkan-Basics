@@ -4,11 +4,15 @@ This is a repository created just so that I can learn about vulkan and save some
 
 ## Current collected items
 
-### `Build Process`
+### Build Process
 
 By mixing use of CMake and Makefile, I can allow me/others to simply run `make run` command irrespective of OS to build the application for their OS. This makefile can also handle creation of `compile_commands.json` on windows for users who are not using Visual Studio building the application (and are rather using VSCode or Zed for better intellisense). 
 
-### `Pipelines`
+Build process also include handling of pipelines (explained in next section.)
+
+---
+
+### Pipelines
 
 The following two are just example of assets there could be many other types of assets, but for sake of explanation I selected these two as these are better for explanation.
 
