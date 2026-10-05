@@ -1,28 +1,10 @@
 # Folder Structure
-
-### externals
-
-This folder contains libraries static or dynamic that are third party and will be used by my application.
-
-### libs
-
-Libraries that I will make in the project and will be used by the application which can be static or dynamic.
-
-### include
-
-Header files
-
-### src
-
-Implementation files
-
-### assets
-
-Assets like textures or shaders in the raw format, which on build will then be converted to final format.
-
-### pipelines
-
-The pipelines that run during development and are not intended to be shipped with the final build.
+1. `externals` - This folder contains libraries static or dynamic that are third party and will be used by my application.
+2. `libs` - Libraries that I will make in the project and will be used by the application which can be static or dynamic.
+3. `include` - Just include header files
+4. `src` - Implementation files
+5. `assets` - Assets like textures or shaders in the raw format, which on building main application will then be converted to final format.
+6. `pipelines` - The build pipelines that run during development and are not intended to be shipped with the final build.
 
 ## Future Information
 
