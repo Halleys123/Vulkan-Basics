@@ -4,13 +4,13 @@ This is a repository created just so that I can learn about vulkan and save some
 
 ## Current collected items
 
-1. `Build Process`
+### `Build Process`
 
 By mixing use of CMake and Makefile, I can allow me/others to simply run `make run` command irrespective of OS to build the application for their OS. This makefile can also handle creation of `compile_commands.json` on windows for users who are not using Visual Studio building the application (and are rather using VSCode or Zed for better intellisense). 
 
-2. `Pipelines`
+### `Pipelines`
 
-`The following two headings contains context about this problem`
+The following two are just example of assets there could be many other types of assets, but for sake of explanation I selected these two as these are better for explanation.
 
 #### `Textures`
 Many of the assets that are used in games are in specialized formats for better GPU efficiency and Bandwidth consumption, that means JPG or PNG like formats are not suited for games as they take too much GPU RAM, rather formats like BC7 are used for this purpose, but the texture formats most of the files we can find online are found in JPG, PNG or other image formats, but those are not good for our game.
