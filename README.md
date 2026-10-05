@@ -29,12 +29,15 @@ So a `pipeline` or `pipeline program` is a program that is used for helping with
 
 #### Common source of misunderstandings
 
-1. Question:  Why not just compile these once assets even during development time rather than creating these pipelines?
-1. Answer: That is becuase these assets may change during every once or during testing so rather than recompiling shaders or converting textures again and again, we make that a process of build itself, so that it can be automated.
+```
+> Question:  Why not just compile these once assets even during development time rather than creating these pipelines?
+> Answer: That is becuase these assets may change during every once or during testing so rather than recompiling shaders or converting textures again and again, we make that a process of build itself, so that it can be automated.
+```
 
-2. Question: Are there only two types of assets (not important but still for people who are new)
-2. Answer: No these are not the only assets that can be there in program, other assets may include 3D Models or Sound, VFX etc.
-
+```
+> Question: Are there only two types of assets (not important but still for people who are new)
+> Answer: No these are not the only assets that can be there in program, other assets may include 3D Models or Sound, VFX etc.
+```
 # Folder Structure
 
 1. `externals` - This folder contains libraries static or dynamic that are third party and will be used by my application.
