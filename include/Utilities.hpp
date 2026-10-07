@@ -18,4 +18,9 @@ struct SwapChainDetails {
     std::vector<VkPresentModeKHR> presentationModes;
 };
 
+struct SwapChainImage {
+    VkImage image; // get
+    VkImageView imageView; // created
+};
+
 const std::vector<const char*> deviceExtensions{"VK_KHR_swapchain"};

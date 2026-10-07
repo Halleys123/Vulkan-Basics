@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 4.3)
 
 project(Vulkan)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(Vulkan REQUIRED)
 
 set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "")
@@ -29,6 +32,7 @@ target_compile_definitions(main PRIVATE
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     VK_USE_PLATFORM_WIN32_KHR # Although it can be used, try not to use this
     $<$<CONFIG:Debug>:DEBUG_MODE>
+    NOMINMAX
 )
 
 target_link_libraries(main PRIVATE glfw)
