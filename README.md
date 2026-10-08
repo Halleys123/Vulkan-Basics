@@ -38,6 +38,19 @@ So a `pipeline` or `pipeline program` is a program that is used for helping with
 > Question: Are there only two types of assets (not important but still for people who are new)
 > Answer: No these are not the only assets that can be there in program, other assets may include 3D Models or Sound, VFX etc.
 ```
+
+## Prerequisites:
+
+These are the prequisites that are required for compiling the Program (all the versions implicitly means, all versions in that range are supported that is for x.0.5 versions till x.9.9 will be supported).
+
+1. CMake - Version 4.3
+2. makefile - Version 4.4.1
+3. LunarG SDK - Use 1.4.357.0 version Provides
+  a. glslValidator.exe - Used for compiling shaders.
+  b. Vulkan Support, validators, header files are used from this.
+4. MinGW - On Windows, Mac and Linux
+5. Visual Studio 2026 - On Windows
+
 # Folder Structure
 
 1. `externals` - This folder contains libraries static or dynamic that are third party and will be used by my application.
