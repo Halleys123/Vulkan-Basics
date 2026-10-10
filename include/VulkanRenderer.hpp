@@ -13,8 +13,9 @@ private:
     VkSurfaceKHR surface;
     VkSwapchainKHR Swapchain;
 
+    VkPipeline graphicsPipeline;
     VkPipelineLayout pipelineLayout;
-
+    VkRenderPass renderPass;
     std::vector<SwapChainImage> swapChainImages;;
 
     // utilites
@@ -33,6 +34,7 @@ private:
     void createLogicalDevice();
     void createSwapChain();
     void createGraphicsPipeline();
+    void createRenderPass();
 
     bool checkExtensionSupport(const std::vector<const char*>& extensions);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);

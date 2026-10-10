@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <stdexcept>
+#include <array>
 
 #include <algorithm>
 
@@ -21,6 +22,7 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
         getPhysicalDevice();
         createLogicalDevice();
         createSwapChain();
+        createRenderPass();
         createGraphicsPipeline();
     } catch (const std::runtime_error& err) {
         printf("Error: %s\n", err.what());
@@ -32,6 +34,8 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 
 void VulkanRenderer::cleanup() {
     vkDestroyPipelineLayout(mainDevice.logicalDevice, pipelineLayout, nullptr);
+    vkDestroyRenderPass(mainDevice.logicalDevice, renderPass, nullptr);
+    vkDestroyPipeline(mainDevice.logicalDevice, graphicsPipeline, nullptr);
     for(SwapChainImage& i : swapChainImages) {
         vkDestroyImageView(mainDevice.logicalDevice, i.imageView, nullptr);
     }
@@ -362,8 +366,8 @@ void VulkanRenderer::createLogicalDevice() {
         queueFamiliesInfo.back().sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueFamiliesInfo.back().queueFamilyIndex = index;
         queueFamiliesInfo.back().pQueuePriorities = &priority;
-    }
         queueFamiliesInfo.back().queueCount = 1;
+    }
 
     VkPhysicalDeviceFeatures physicalDevicesFeatures = {};
 
@@ -414,23 +418,19 @@ void VulkanRenderer::createSwapChain() {
     // If graphics and presentation are different then swapchain must let images be shared between families
     // Although this is not that efficient
 
-    if(indices.graphicsFamily != indices.presentationFamily) {
-        uint32_t familyIndices[2] = {
-            static_cast<uint32_t>(indices.graphicsFamily),
-            static_cast<uint32_t>(indices.presentationFamily)
-        };
+    uint32_t familyIndices[2] = {
+        static_cast<uint32_t>(indices.graphicsFamily),
+        static_cast<uint32_t>(indices.presentationFamily)
+    };
 
+    if(indices.graphicsFamily != indices.presentationFamily) {
         swapchainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         swapchainInfo.queueFamilyIndexCount = 2;
         swapchainInfo.pQueueFamilyIndices = familyIndices;
     } else {
-        uint32_t familyIndices[1] = {
-            static_cast<uint32_t>(indices.graphicsFamily),
-        };
-
         swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        swapchainInfo.queueFamilyIndexCount = 1;
-        swapchainInfo.pQueueFamilyIndices = familyIndices;
+        swapchainInfo.queueFamilyIndexCount = 0;
+        swapchainInfo.pQueueFamilyIndices = nullptr;
     }
 
     swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
@@ -447,7 +447,7 @@ void VulkanRenderer::createSwapChain() {
     uint32_t pSwapchainImageCount;
 
     vkGetSwapchainImagesKHR(mainDevice.logicalDevice, Swapchain, &pSwapchainImageCount, nullptr);
-    images.reserve(pSwapchainImageCount);
+    images.resize(pSwapchainImageCount);
     vkGetSwapchainImagesKHR(mainDevice.logicalDevice, Swapchain, &pSwapchainImageCount, images.data());
 
     for(VkImage& image : images) {
@@ -607,10 +607,98 @@ void VulkanRenderer::createGraphicsPipeline() {
 
     // TODO DEPTH STENCIL TESTING
 
+    // FINALLY GRAPHICS PIPELINE
+    VkGraphicsPipelineCreateInfo graphicsPipelineInfo = {};
+    graphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    graphicsPipelineInfo.stageCount = 2;
+    graphicsPipelineInfo.pStages = shaderStages;
+    graphicsPipelineInfo.pVertexInputState = &vertexInputInfo;
+    graphicsPipelineInfo.pInputAssemblyState = &assemblyInfo;
+    graphicsPipelineInfo.pViewportState = &viewportInfo;
+    graphicsPipelineInfo.pDynamicState = nullptr;
+    graphicsPipelineInfo.pRasterizationState = &rasterizationInfo;
+    graphicsPipelineInfo.pMultisampleState = &multisamplingInfo;
+    graphicsPipelineInfo.pColorBlendState = &blendingInfo;
+    graphicsPipelineInfo.pDepthStencilState = nullptr;
+    graphicsPipelineInfo.layout = pipelineLayout;
+    graphicsPipelineInfo.renderPass = renderPass; // Telling pipeline that it (pipeline) will be used by this renderpass
+    graphicsPipelineInfo.subpass = 0;
+
+    // This is used to make multiple pipelines (if any) based on some primary pipeline
+    // That is one pipeline you fill properties, for other pipelines, tell which properties are different from first one, then vulkan will create those for us
+    graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    graphicsPipelineInfo.basePipelineIndex = -1;
+
+    VkResult result = vkCreateGraphicsPipelines(mainDevice.logicalDevice, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &graphicsPipeline);
 
     // These modules are not required anymore, they need to be deleted
     vkDestroyShaderModule(mainDevice.logicalDevice, vertexShaderModule, nullptr);
     vkDestroyShaderModule(mainDevice.logicalDevice, fragmentShaderModule, nullptr);
+
+    if(result != VK_SUCCESS) {
+        throw std::runtime_error("Unable to create graphics pipeline");
+    }
+}
+void VulkanRenderer::createRenderPass() {
+    VkAttachmentDescription attachDescription = {};
+    attachDescription.format = swapChainImageFormat;
+    attachDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+    attachDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // when we start render pass what to do with the attachment to which we are going to process info to
+    attachDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    // -------------------------------
+
+    VkAttachmentReference colorAttachmentRef = {};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass = {};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+
+    // -------------------------------
+
+    // Need to determine when layout transitions occur using subpass dependencies
+    std::array<VkSubpassDependency, 2> subpassDependencies;
+
+    // Conversion from VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    subpassDependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    subpassDependencies[0].dstSubpass = 0;
+    subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    subpassDependencies[0].dependencyFlags = 0;
+
+    subpassDependencies[1].srcSubpass = 0;
+    subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+    subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    subpassDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    subpassDependencies[1].dependencyFlags = 0;
+
+    // -------------------------------
+
+    VkRenderPassCreateInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = static_cast<uint32_t>(subpassDependencies.size());
+    renderPassInfo.pDependencies = subpassDependencies.data();// Ensure attachDescription is in-scope and valid here
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &attachDescription;
+
+    VkResult result = vkCreateRenderPass(mainDevice.logicalDevice, &renderPassInfo, nullptr, &renderPass);
+
+    if(result != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create render pass");
+    }
 }
 
 VkImageView VulkanRenderer::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect) {
