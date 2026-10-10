@@ -46,7 +46,7 @@ These are the prequisites that are required for compiling the Program (all the v
 1. CMake - Version 4.3
 2. makefile - Version 4.4.1
 3. LunarG SDK - Use 1.4.357.0 version Provides
-  a. glslValidator.exe - Used for compiling shaders.
+  a. glslValidator.exe - Used for compiling shaders. This must be available in PATH variables for easy use.
   b. Vulkan Support, validators, header files are used from this.
 4. MinGW - On Windows, Mac and Linux
 5. Visual Studio 2026 - On Windows

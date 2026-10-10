@@ -39,6 +39,49 @@ target_link_libraries(main PRIVATE glfw)
 target_link_libraries(main PRIVATE glm::glm)
 target_link_libraries(main PRIVATE Vulkan::Vulkan)
 
+# CMake below this part is written by Claude and I don't understand what is happening here
+# Research more about CMake after learning VUlkan
+set(SHADER_SRC_DIR ${CMAKE_SOURCE_DIR}/assets/shaders)
+set(SHADER_BIN_DIR ${CMAKE_BINARY_DIR}/shaders)
+
+file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS
+    ${SHADER_SRC_DIR}/*.vert
+    ${SHADER_SRC_DIR}/*.frag
+    ${SHADER_SRC_DIR}/*.comp
+    ${SHADER_SRC_DIR}/*.geom
+    ${SHADER_SRC_DIR}/*.tesc
+    ${SHADER_SRC_DIR}/*.tese
+)
+
+set(SPV_FILES "")
+
+foreach(SRC ${SHADER_SOURCES})
+    file(RELATIVE_PATH REL ${SHADER_SRC_DIR} ${SRC})
+    set(OUT ${SHADER_BIN_DIR}/${REL}.spv)
+    get_filename_component(OUT_DIR ${OUT} DIRECTORY)
+
+    add_custom_command(
+        OUTPUT ${OUT}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${OUT_DIR}
+        COMMAND Vulkan::glslangValidator -V ${SRC} -o ${OUT}
+        DEPENDS ${SRC}
+        COMMENT "Compiling shader ${REL}"
+        VERBATIM
+    )
+    list(APPEND SPV_FILES ${OUT})
+endforeach()
+
+add_custom_target(shaders DEPENDS ${SPV_FILES})
+
+add_custom_target(copy_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${SHADER_BIN_DIR} $<TARGET_FILE_DIR:main>/shaders
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${CMAKE_SOURCE_DIR}/assets/textures $<TARGET_FILE_DIR:main>/textures
+    DEPENDS shaders
+)
+add_dependencies(main copy_assets)
+
 # install(TARGETS main RUNTIME DESTINATION bin)
 # set(CPACK_PACKAGE_NAME "VulkanApp")
 # set(CPACK_PACKAGE_VERSION "1.0.0")
