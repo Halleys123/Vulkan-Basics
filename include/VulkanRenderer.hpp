@@ -13,6 +13,8 @@ private:
     VkSurfaceKHR surface;
     VkSwapchainKHR Swapchain;
 
+    VkPipelineLayout pipelineLayout;
+
     std::vector<SwapChainImage> swapChainImages;;
 
     // utilites

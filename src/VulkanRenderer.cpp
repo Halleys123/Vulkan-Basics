@@ -31,6 +31,7 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 }
 
 void VulkanRenderer::cleanup() {
+    vkDestroyPipelineLayout(mainDevice.logicalDevice, pipelineLayout, nullptr);
     for(SwapChainImage& i : swapChainImages) {
         vkDestroyImageView(mainDevice.logicalDevice, i.imageView, nullptr);
     }
@@ -533,6 +534,78 @@ void VulkanRenderer::createGraphicsPipeline() {
     // Rasterisor
     // INput assembly changes vertex into primitives, then this rasterizor convert primitives into fragments
     // Fragment is info required to fill a pixel on screen, i.e. fragment contains information like which pixel to fill, and which color to use
+    VkPipelineRasterizationStateCreateInfo rasterizationInfo = {};
+    rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    // What does depthClampEnable does
+    // Any geometry that falls outside the view frustum (closer than the near plane or further than the far plane) is discarded (clipped) and not rendered at all.
+    // The Problem: If a large object (like a mountain or a massive spaceship) crosses your far clipping plane, it gets sliced open, creating a jarring, ugly visual hole where you can see inside the 3D model.
+    // If you change this to VK_TRUE, Vulkan stops discarding geometry that is too close or too far. Instead, it "clamps" its depth values.
+    // Geometry beyond the far plane is projectively squashed and drawn directly onto the far plane instead of being cut off.
+    // Turning this on requires a device features to be enabled.
+    rasterizationInfo.depthClampEnable = VK_FALSE;
+    // If this is turned on this will totally discard the data that is received and we don't want to draw anything to framebuffer
+    // So usually its false;
+    rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
+    // Decides how to handle filling points between vertices and is different from VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+    // Features other than polygon mode fill requires some other features
+    rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    // Using some value other than 1 we need some GPU features (WIDE_LINES)
+    rasterizationInfo.lineWidth = 1.0f;
+    // Same as OpenGL culling
+    rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    // To determine to know which side is backside
+    rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizationInfo.depthBiasEnable = VK_FALSE;
+
+    // 5th Stage
+    // MULTISAMPLING
+    // It is a subset of supersampling
+    VkPipelineMultisampleStateCreateInfo multisamplingInfo = {};
+    multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisamplingInfo.sampleShadingEnable = VK_FALSE;
+    multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // Number of samples to use per fragment, only used when MMA is enabled
+
+    // 6th Stage
+    // BLENDING
+    // If two objects are drawn on top of each other how to handle that part (maybe like glass, or something)
+    VkPipelineColorBlendAttachmentState colorState = {};
+    // Tell which colors to apply this blend to
+    colorState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorState.blendEnable = VK_TRUE;
+
+    // Blending is made on equation
+    // (srcColorBlendFactor * newColor) colorBlendOp (destinationColorBlendFactor * oldColor)
+    colorState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+    colorState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    colorState.colorBlendOp = VK_BLEND_OP_ADD;
+    colorState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    colorState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    colorState.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    VkPipelineColorBlendStateCreateInfo blendingInfo = {};
+    blendingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    // To properly enable blending on something like glass, mathematical operation are used (better option) not logical operations
+    blendingInfo.logicOpEnable = VK_FALSE;
+    blendingInfo.pAttachments = &colorState;
+    blendingInfo.attachmentCount = 1;
+    // We pass 4 constants for rgba which are then used in colorState values when something like VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR
+    // blendingInfo.blendConstants;
+
+    // DESCRIPTOR_SET are set here
+    VkPipelineLayoutCreateInfo vkPipelineLayoutInfo = {};
+    vkPipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    vkPipelineLayoutInfo.setLayoutCount = 0;
+    vkPipelineLayoutInfo.pSetLayouts = nullptr;
+    vkPipelineLayoutInfo.pushConstantRangeCount = 0;
+    vkPipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+    // Create Pipeline Layout
+    VkResult pipelineResult = vkCreatePipelineLayout(mainDevice.logicalDevice, &vkPipelineLayoutInfo, nullptr, &pipelineLayout);
+    if(pipelineResult != VK_SUCCESS) {
+        throw std::runtime_error("Unable to create Pipeline Layout");
+    }
+
+    // TODO DEPTH STENCIL TESTING
 
 
     // These modules are not required anymore, they need to be deleted
