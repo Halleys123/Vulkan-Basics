@@ -30,6 +30,7 @@ private:
     void getPhysicalDevice();
     void createLogicalDevice();
     void createSwapChain();
+    void createGraphicsPipeline();
 
     bool checkExtensionSupport(const std::vector<const char*>& extensions);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
@@ -43,6 +44,7 @@ private:
     VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR>& list);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilites);
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect);
+    VkShaderModule createShaderModule(const FileContent& shaderBinary);
 
 public:
     VulkanRenderer();

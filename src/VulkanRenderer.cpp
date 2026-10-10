@@ -21,6 +21,7 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
         getPhysicalDevice();
         createLogicalDevice();
         createSwapChain();
+        createGraphicsPipeline();
     } catch (const std::runtime_error& err) {
         printf("Error: %s\n", err.what());
         return EXIT_FAILURE;
@@ -457,6 +458,87 @@ void VulkanRenderer::createSwapChain() {
 
     return;
 }
+void VulkanRenderer::createGraphicsPipeline() {
+    FileContent fragmentShaderCode = readFile(ASSET_DIR  "/assets/shaders/shader.frag.spv");
+    FileContent vertexShaderCode = readFile(ASSET_DIR  "/assets/shaders/shader.vert.spv");
+
+    // Building shader module to link to graphics pipeline
+    VkShaderModule vertexShaderModule = createShaderModule(vertexShaderCode);
+    VkShaderModule fragmentShaderModule = createShaderModule(fragmentShaderCode);
+
+    // Creating pipeline
+    VkPipelineShaderStageCreateInfo vertexShaderStageInfo = {};
+    vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertexShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertexShaderStageInfo.module = vertexShaderModule;
+    vertexShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragmentShaderModule;
+    fragShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertexShaderStageInfo, fragShaderStageInfo};
+
+    VkGraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+
+    // Pipeline implementation
+
+    // 1st stage
+    // Vertex Input (Vertex Description is defined here)
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.pVertexBindingDescriptions = nullptr; // Description about data like data spacing, stride etc
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Data format we are using and where to bind it to/from
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+
+    // 2nd Stage
+    // Input Assembly
+    VkPipelineInputAssemblyStateCreateInfo assemblyInfo = {};
+    assemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    assemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    assemblyInfo.primitiveRestartEnable = VK_FALSE; // allow overriding of strip topology to start new drawing
+
+    // 3rd stage
+    // viewport and scissor
+    VkViewport viewport = {0.0, 0.0, (float)swapChainExtent.width, (float)swapChainExtent.height, 0.0f, 1.0f};
+    VkRect2D scissor = {{0, 0}, swapChainExtent}; // Not cutting anything, everything between 0 0 and swapChainExtent will be visible
+
+    VkPipelineViewportStateCreateInfo viewportInfo = {};
+    viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportInfo.pViewports = &viewport;
+    viewportInfo.pScissors = &scissor;
+    viewportInfo.viewportCount = 1;
+    viewportInfo.scissorCount = 1;
+
+    // Dynamic States
+    // There are dynamic states that allow some properties not bake into pipeline but rather allow them to change when required, something like viewport size. Not using them for now but can be used when required
+
+    // std::vector<VkDynamicState> dynamicStates;
+
+    // dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT); // Can resize viewport with VkCmdSetViewport(commandBuffer, 0, 1, &viewportStruct)
+    // dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+
+    // VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
+    // dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    // dynamicStateInfo.dynamicStateCount = dynamicStates.size();
+    // dynamicStateInfo.pDynamicStates = dynamicStates.data();
+
+    // 4th Stage
+    // Rasterisor
+    // INput assembly changes vertex into primitives, then this rasterizor convert primitives into fragments
+    // Fragment is info required to fill a pixel on screen, i.e. fragment contains information like which pixel to fill, and which color to use
+
+
+    // These modules are not required anymore, they need to be deleted
+    vkDestroyShaderModule(mainDevice.logicalDevice, vertexShaderModule, nullptr);
+    vkDestroyShaderModule(mainDevice.logicalDevice, fragmentShaderModule, nullptr);
+}
 
 VkImageView VulkanRenderer::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect) {
     VkImageViewCreateInfo imageViewInfo = {};
@@ -479,4 +561,19 @@ VkImageView VulkanRenderer::createImageView(VkImage image, VkFormat format, VkIm
     vkCreateImageView(mainDevice.logicalDevice, &imageViewInfo, nullptr, &imageView);
 
     return imageView;
+}
+VkShaderModule VulkanRenderer::createShaderModule(const FileContent& shaderBinary) {
+  VkShaderModuleCreateInfo shaderInfo = {};
+  shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  shaderInfo.codeSize = shaderBinary.size;
+  shaderInfo.pCode = reinterpret_cast<const uint32_t*>(shaderBinary.content);
+
+  VkShaderModule shaderModule;
+  VkResult result = vkCreateShaderModule(mainDevice.logicalDevice, &shaderInfo, nullptr, &shaderModule);
+
+  if(result != VK_SUCCESS) {
+      throw std::runtime_error("Unable to create shader module");
+  }
+
+  return shaderModule;
 }
