@@ -9,6 +9,9 @@ UPDATE_COMPILE_COMMANDS = ./scripts/linux/get_compile_commands.bash
 # TODO This script for now don't handle build for release or debug separately, so make those changes in future
 # TODO Update this path for linux, I am not sure where will final executable land in linux
 RUN_EXECUTABLE = ./build/main
+# Removing old method now, because exe needs to read files relative to the location where it is, but by default realtive paths are read from the place where they are started
+# RUN_DIR = ./build
+# RUN_EXE = ./main
 
 # var for clearing flags on Windows
 
