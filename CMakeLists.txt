@@ -5,7 +5,7 @@ project(Vulkan)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan REQUIRED COMPONENTS glslangValidator)
 
 set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "")
 set(GLFW_BUILD_TESTS OFF CACHE INTERNAL "")
@@ -20,10 +20,6 @@ target_include_directories(main PRIVATE ./include)
 if(MSVC)
     target_link_options(main PRIVATE "/SUBSYSTEM:CONSOLE")
       target_compile_options(main PRIVATE /EHsc)
-endif()
-
-if(CONFIG==Debug)
-  set(DEBUG_MODE 1)
 endif()
 
 target_compile_definitions(main PRIVATE
@@ -41,9 +37,11 @@ target_link_libraries(main PRIVATE Vulkan::Vulkan)
 
 # CMake below this part is written by Claude and I don't understand what is happening here
 # Research more about CMake after learning VUlkan
-set(SHADER_SRC_DIR ${CMAKE_SOURCE_DIR}/assets/shaders)
-set(SHADER_BIN_DIR ${CMAKE_BINARY_DIR}/shaders)
+set(ASSET_SRC_DIR  ${CMAKE_SOURCE_DIR}/assets)
+set(SHADER_SRC_DIR ${ASSET_SRC_DIR}/shaders)
+set(SHADER_GEN_DIR ${CMAKE_BINARY_DIR}/generated/shaders)
 
+# ---- 1. Compile shaders into build/generated/shaders ----
 file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS
     ${SHADER_SRC_DIR}/*.vert
     ${SHADER_SRC_DIR}/*.frag
@@ -57,7 +55,7 @@ set(SPV_FILES "")
 
 foreach(SRC ${SHADER_SOURCES})
     file(RELATIVE_PATH REL ${SHADER_SRC_DIR} ${SRC})
-    set(OUT ${SHADER_BIN_DIR}/${REL}.spv)
+    set(OUT ${SHADER_GEN_DIR}/${REL}.spv)
     get_filename_component(OUT_DIR ${OUT} DIRECTORY)
 
     add_custom_command(
@@ -73,14 +71,33 @@ endforeach()
 
 add_custom_target(shaders DEPENDS ${SPV_FILES})
 
+# ---- 2. Copy non-shader asset folders next to the exe ----
+file(GLOB ASSET_ENTRIES LIST_DIRECTORIES true CONFIGURE_DEPENDS ${ASSET_SRC_DIR}/*)
+
+set(ASSET_COPY_COMMANDS "")
+foreach(ENTRY ${ASSET_ENTRIES})
+    if(IS_DIRECTORY ${ENTRY})
+        get_filename_component(ENTRY_NAME ${ENTRY} NAME)
+        if(NOT ENTRY_NAME STREQUAL "shaders")
+            list(APPEND ASSET_COPY_COMMANDS
+                COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+                        ${ENTRY} $<TARGET_FILE_DIR:main>/assets/${ENTRY_NAME}
+            )
+        endif()
+    endif()
+endforeach()
+
+# ---- 3. Copy compiled .spv files into assets/shaders next to the exe ----
 add_custom_target(copy_assets ALL
+    ${ASSET_COPY_COMMANDS}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_GEN_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-            ${SHADER_BIN_DIR} $<TARGET_FILE_DIR:main>/shaders
-    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-            ${CMAKE_SOURCE_DIR}/assets/textures $<TARGET_FILE_DIR:main>/textures
-    DEPENDS shaders
+            ${SHADER_GEN_DIR} $<TARGET_FILE_DIR:main>/assets/shaders
 )
+add_dependencies(copy_assets shaders)
 add_dependencies(main copy_assets)
+
+target_compile_definitions(main PRIVATE ASSET_DIR="$<TARGET_FILE_DIR:main>")
 
 # install(TARGETS main RUNTIME DESTINATION bin)
 # set(CPACK_PACKAGE_NAME "VulkanApp")
