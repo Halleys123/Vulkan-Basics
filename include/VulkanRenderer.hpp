@@ -16,11 +16,15 @@ private:
     VkPipeline graphicsPipeline;
     VkPipelineLayout pipelineLayout;
     VkRenderPass renderPass;
-    std::vector<SwapChainImage> swapChainImages;;
+    std::vector<SwapChainImage> swapChainImages;
+    std::vector<VkFramebuffer> swapChainFrameBuffers;
+    std::vector<VkCommandBuffer> commandBuffer;
 
     // utilites
     VkExtent2D swapChainExtent;
     VkFormat swapChainImageFormat;
+
+    VkCommandPool graphicsCommandPool; // This is a command pool only used for graphics
 
     struct {
         VkPhysicalDevice physicalDevice;
@@ -31,10 +35,15 @@ private:
     void createSurface();
 
     void getPhysicalDevice();
+    void recordCommands();
+
     void createLogicalDevice();
     void createSwapChain();
     void createGraphicsPipeline();
     void createRenderPass();
+    void createFramebuffers();
+    void createCommandPool();
+    void createCommandBuffers();
 
     bool checkExtensionSupport(const std::vector<const char*>& extensions);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
